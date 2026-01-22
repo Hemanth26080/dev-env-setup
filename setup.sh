@@ -55,16 +55,21 @@ fi
 log_info "Updating system packages..."
 sudo dnf update -y || die "Failed to update packages"
 
+# Add Docker repository for RHEL
+log_info "Adding Docker repository..."
+sudo dnf install -y dnf-plugins-core || die "Failed to install dnf-plugins-core"
+sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo || die "Failed to add Docker repo"
+
 # Install required tools
 log_info "Installing Git, Curl, Docker, and SQLite..."
-sudo dnf install -y git curl docker sqlite || die "Failed to install required packages"
+sudo dnf install -y git curl docker-ce sqlite3 || die "Failed to install required packages"
 
 # Enable and start Docker
 log_info "Enabling and starting Docker service..."
 sudo systemctl enable --now docker || die "Failed to start Docker"
 
 # Add user to docker group
-if ! groups "$USER" | grep -qw docker; then
+if ! id -G "$USER" | grep -qw "docker"; then
     log_info "Adding $USER to 'docker' group..."
     sudo usermod -aG docker "$USER"
     log_warn "You must log out and back in (or run 'newgrp docker') for Docker group changes to take effect."
@@ -81,15 +86,19 @@ export DB_HOST=localhost
 EOF
 
 # Source it for the rest of the script
-source "$ENV_FILE"
+if [[ -f "$ENV_FILE" ]]; then
+    source "$ENV_FILE"
+else
+    die "Failed to create environment file: $ENV_FILE"
+fi
 
 # Clone project
 PROJECTS_DIR="$HOME/projects"
 mkdir -p "$PROJECTS_DIR"
 cd "$PROJECTS_DIR"
 
-REPO_URL="https://github.com/example/sample-app.git"
-REPO_NAME="sample-app"
+REPO_URL="https://github.com/Hemanth26080/dev-env-setup.git"
+REPO_NAME="dev-env-setup"
 
 if [[ ! -d "$REPO_NAME" ]]; then
     log_info "Cloning repository: $REPO_NAME"
@@ -114,4 +123,4 @@ log_info "✅ Setup complete on Red Hat system!"
 log_info "Next steps:"
 echo "  • Log out and back in (or run 'newgrp docker') to use Docker without sudo"
 echo "  • Run 'source ~/.dev_env' to load environment variables"
-echo "  • Go to ~/projects/sample-app and start coding!"
+echo "  • Go to ~/projects/dev-env-setup and start coding!"
